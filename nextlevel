@@ -1,0 +1,3 @@
+#!/bin/sh
+actor=$(id -un)
+case "$actor" in level[1-9]) exec su - "level$((${actor#level} + 1))";; *) echo 'No next level.';; esac

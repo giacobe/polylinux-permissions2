@@ -2,5 +2,6 @@
 . /etc/profile.d/polylinux-colors.sh
 PS1='\w$ '
 cd "$HOME" || exit 1
+clear
 printf '\nPolyLinux Permissions | nextlevel | prevlevel | validate\n'
 cat README.txt

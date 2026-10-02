@@ -8,9 +8,12 @@ form_url: ""
 
 # Users, Groups, and Permissions
 
-Become the administrator of a small fictional company. Across ten levels, repair
-ownership, protect private information, and configure shared workspaces. Each
-level contains a separate assignment; you can complete them in any order.
+Become the administrator in a themed operations environment. Each attempt uses
+one of the same 16 deterministic themes as the other PolyLinux labs. Theme
+vocabulary appears in the organization, location, systems, paths, and generated
+records. Across ten levels, repair ownership, groups, and permission bits to
+protect private information and configure shared workspaces. Each level contains
+a separate assignment; you can complete them in any order.
 
 ## Start the lab
 

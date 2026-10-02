@@ -60,6 +60,7 @@ for n in 1 2 3 4 5 6 7 8 9 10; do
     id "level$n" >/dev/null 2>&1 || adduser -D -s /bin/sh "level$n"
     passwd -d "level$n" >/dev/null
 done
+printf '\n'
 # Explicit users avoid reliance on usermod or preexisting sysadmin membership.
 policy=/etc/sudoers.d/polylinux-permissions
 pending_policy=/run/polylinux-permissions/sudoers.pending
@@ -86,12 +87,21 @@ prepare_levels
 supervisor=$!
 trap - EXIT
 if [ "$NO_LOGIN" -eq 1 ]; then
-    wait "$supervisor" || die 'build failed; see /var/log/polylinux-permissions.log'
+    wait_for_all_levels "$supervisor" || die 'build failed; see /var/log/polylinux-permissions.log'
 else
+    printf 'Preparing Level 1 (parallel workers: %s)...\n' "$MAX_PARALLEL"
+    elapsed=0
     until [ -f /run/polylinux-permissions/level1.ready ]; do
+        report_build_progress
         [ ! -f /run/polylinux-permissions/level1.failed ] || die 'level 1 failed; see build log'
         kill -0 "$supervisor" 2>/dev/null || die 'build supervisor stopped; see build log'
+        elapsed=$((elapsed + 1))
+        if [ $((elapsed % 5)) -eq 0 ]; then
+            printf 'Still preparing Level 1 (%s seconds elapsed).\n' "$elapsed"
+        fi
         sleep 1
     done
+    report_build_progress
+    printf 'Level 1 is ready. Starting the learner shell; other levels continue building.\n'
     exec su -l level1
 fi

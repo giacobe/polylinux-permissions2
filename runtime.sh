@@ -20,7 +20,7 @@ write_level_status_readme() {
     rm -f "$raw"
 }
 prepare_levels() {
-    rm -f /run/polylinux-permissions/*.ready /run/polylinux-permissions/*.failed /run/polylinux-permissions/all-ready
+    rm -f /run/polylinux-permissions/*.started /run/polylinux-permissions/*.ready /run/polylinux-permissions/*.failed /run/polylinux-permissions/all-ready
     : > /var/log/polylinux-permissions.log
     for n in 1 2 3 4 5 6 7 8 9 10; do
         home=/home/level$n
@@ -46,6 +46,7 @@ build_one() (
         fi
     }
     trap failed EXIT
+    touch "/run/polylinux-permissions/$levelToBuild.started"
     safe_remove_home "$LEVEL_HOME"
     mkdir -m 700 "$LEVEL_HOME"
     sh "$INSTALL_ROOT/level$levelnumber.sh"
@@ -61,6 +62,49 @@ build_one() (
     safe_remove_home "$LEVEL_HOME"
     touch "/run/polylinux-permissions/$levelToBuild.ready"
 )
+PROGRESS_STARTED=' '
+PROGRESS_FINISHED=' '
+report_build_progress() {
+    for n in 1 2 3 4 5 6 7 8 9 10; do
+        level=level$n
+        if [ -f "/run/polylinux-permissions/$level.ready" ]; then
+            case "$PROGRESS_FINISHED" in *" $n "*) ;; *)
+                printf 'Level %s: ready\n' "$n"
+                PROGRESS_FINISHED="$PROGRESS_FINISHED$n "
+            esac
+        elif [ -f "/run/polylinux-permissions/$level.failed" ]; then
+            case "$PROGRESS_FINISHED" in *" $n "*) ;; *)
+                printf 'Level %s: failed (see /var/log/polylinux-permissions.log)\n' "$n"
+                PROGRESS_FINISHED="$PROGRESS_FINISHED$n "
+            esac
+        elif [ -f "/run/polylinux-permissions/$level.started" ]; then
+            case "$PROGRESS_STARTED" in *" $n "*) ;; *)
+                printf 'Level %s: building\n' "$n"
+                PROGRESS_STARTED="$PROGRESS_STARTED$n "
+            esac
+        fi
+    done
+}
+wait_for_all_levels() {
+    supervisor=$1
+    elapsed=0
+    printf 'Preparing all ten levels (parallel workers: %s)...\n' "$MAX_PARALLEL"
+    while kill -0 "$supervisor" 2>/dev/null; do
+        report_build_progress
+        elapsed=$((elapsed + 1))
+        if [ $((elapsed % 5)) -eq 0 ]; then
+            printf 'Still building; progress is recorded above and in /var/log/polylinux-permissions.log.\n'
+        fi
+        sleep 1
+    done
+    if wait "$supervisor"; then
+        result=0
+    else
+        result=$?
+    fi
+    report_build_progress
+    return "$result"
+}
 build_levels() {
     failures=0; running=0; pids=
     for n in 1 2 3 4 5 6 7 8 9 10; do

@@ -1,7 +1,10 @@
 # Permissions curriculum
 
-Learners act as administrators of a fictional company in a disposable VM. Each
-level starts from a fresh, independent fault. Inspect, make the smallest repair,
+Learners act as administrators in a themed operations environment in a disposable
+VM. One of the shared PolyLinux themes is selected for the attempt from the lab ID,
+learner email, and VM date. Its organization, place, system, project, and asset
+vocabulary appears in each level's generated records, paths, and instructions.
+Each level starts from a fresh, independent fault. Inspect, make the smallest repair,
 then submit the current-state fingerprint from `validate`.
 
 | Level | Primary skill | Starting evidence and required repair | Preserve |
@@ -24,9 +27,9 @@ not a login password and not a correct/incorrect decision.
 
 ## Invariants
 
-Only a deliberately specified set of metadata changes is necessary. Filenames,
-company identities, project names, record contents and the level 6 blocker vary by
-seed. Wrong groups are chosen from a different department by construction. Level 6
+Only a deliberately specified set of metadata changes is necessary. The selected
+theme, filenames, project names, record contents and level 6 blocker vary by seed.
+Wrong groups are chosen from a different department by construction. Level 6
 has exactly one blocker. Level 10 has all of its own evidence and needs no prior
 answer. Department membership is real, not simulated in a text file.
 

@@ -10,8 +10,9 @@ packaging. This directory is a standalone lab source tree.
 Place the runtime payload in `/root` of a compatible disposable Buildroot VM.
 Root's `.profile` starts the installer. It derives the exercise code once from
 the Buildroot VM's current ISO date and uses that same code in each level's
-boxed README. During setup it prints the ten levels being created. Interactive
-installation asks for the learner's email. For automated installation:
+boxed README. During setup it reports each level's build progress and prints
+periodic status while workers are running. Interactive installation asks for the
+learner's email. For automated installation:
 
 ```sh
 USER_ID=learner@example.edu CURRENT_DATE=2026-10-01 \
@@ -33,10 +34,14 @@ For level N, the answer seed uses the ISO date represented by the exercise code:
 SHA256(email + YYYY-MM-DD + SYSTEM_PASSWORD + LEVEL_PASSWORD_ROOT + N)
 ```
 
-Exact UTF-8 bytes, no separators and no trailing newline. Defaults are
+Exact UTF-8 bytes, no separators and no trailing newline. A separate shared
+themes-v1 derivation selects one of the series' 16 themes from the lab ID,
+learner email, and VM date; every level uses that same theme. The selected theme
+supplies the boxed theme title, organization, place, system, project, assets,
+events, and other details in filenames and generated records. Defaults are
 `systemPassword` and `levelPassword`; override both through environment variables.
 Learner READMEs display the exercise code without a separate date. Their
-instructions wrap inside a 40-column star box. Email spelling and case are
+instructions wrap inside a 70-column star box. Email spelling and case are
 preserved, not silently normalized. Invalid dates or whitespace in the email are
 rejected. Labeled SHA-256 subhashes choose department,
 employee, names, blocker location, and record contents independently.

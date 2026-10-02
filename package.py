@@ -7,7 +7,7 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parent
 RUNTIME = ['.profile','profile','install.sh','resources.sh','runtime.sh',
-           'company-data.sh','polylinux-colors.sh','nextlevel','prevlevel','validate',
+           'company-data.sh','polylinux-theme-catalog.sh','polylinux-colors.sh','nextlevel','prevlevel','validate',
            'LICENSE'] + [f'level{n}.sh' for n in range(1,11)]
 
 def main():

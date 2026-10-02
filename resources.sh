@@ -26,7 +26,7 @@ render_box_file() {
     input=$1
     output=$2
     awk '
-        BEGIN { width=70; border="**********************************************************************"; print border }
+        BEGIN { width=70; border="**************************************************************************"; print border }
         function boxed(text, cut, i) {
             if (text == "") { printf "* %-70s *\n", ""; return }
             while (length(text) > width) {

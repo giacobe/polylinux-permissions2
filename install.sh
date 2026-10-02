@@ -32,6 +32,12 @@ case "$USER_ID" in *[[:space:]]*|'') die 'email cannot contain whitespace';; ?*@
 MAX_PARALLEL=${MAX_PARALLEL:-10}
 case "$MAX_PARALLEL" in [1-9]|10) ;; *) die 'MAX_PARALLEL must be 1..10';; esac
 export INSTALL_ROOT USER_ID currentDate EXERCISE_CODE SYSTEM_PASSWORD LEVEL_PASSWORD_ROOT
+. "$INSTALL_ROOT/polylinux-theme-catalog.sh"
+LAB_ID=polylinux-permissions
+export LAB_ID
+select_theme
+THEME_TITLE=$(theme_field title)
+export THEME_INDEX THEME_TITLE
 umask 022
 # An atomic lock prevents simultaneous reset/build workers from mixing sessions.
 mkdir -p /run/polylinux-permissions /etc/profile.d /etc/sudoers.d /home
@@ -48,7 +54,7 @@ for group in $DEPARTMENTS; do
         [ "$(id -gn "$person")" = "$group" ] || die "existing $person has unexpected primary group"
     done
 done
-printf 'Creating Level'
+printf 'Creating Levels (Theme: %s)' "$THEME_TITLE"
 for n in 1 2 3 4 5 6 7 8 9 10; do
     printf ' %s' "$n"
     id "level$n" >/dev/null 2>&1 || adduser -D -s /bin/sh "level$n"

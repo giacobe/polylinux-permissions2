@@ -20,6 +20,8 @@ chmod 660 "$LEVEL_HOME/work/company/$DEPARTMENT/$PROJECT/plan.txt"
 chown -R "$TARGET_USER:$DEPARTMENT" "$LEVEL_HOME/work/company/homes/$TARGET_USER"
 chmod 755 "$LEVEL_HOME/work/company/homes/$TARGET_USER"
 chmod 600 "$LEVEL_HOME/work/company/homes/$TARGET_USER/notes.txt"
-levelinstructions="Inside work/: Complete the audit. company/$DEPARTMENT/$DOCUMENT must be $TARGET_USER:$DEPARTMENT mode 640. company/$DEPARTMENT/$PROJECT must be root:$DEPARTMENT mode 2770. company/homes/$TARGET_USER must retain its owner and group and have mode 700. Do not alter plan.txt or notes.txt. Run validate when finished and submit the printed key to the exercise grading form."
+levelinstructions="Target employee: $TARGET_USER.
+Target department: $DEPARTMENT.
+Inside work/: Complete the audit. company/$DEPARTMENT/$DOCUMENT must be $TARGET_USER:$DEPARTMENT mode 640. company/$DEPARTMENT/$PROJECT must be root:$DEPARTMENT mode 2770. company/homes/$TARGET_USER must retain its owner and group and have mode 700. Do not alter plan.txt or notes.txt. Run validate when finished and submit the printed key to the exercise grading form."
 
 finish_level

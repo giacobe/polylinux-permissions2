@@ -6,6 +6,19 @@ index_for() { hex=$(derive_hex "$1"); byte=$(printf '%s' "$hex" | cut -c1-2); pr
 word_at() { wanted=$1; shift; while [ "$wanted" -gt 0 ]; do shift; wanted=$((wanted - 1)); done; printf '%s\n' "$1"; }
 derive_parameters() {
     . "$INSTALL_ROOT/company-data.sh"
+    . "$INSTALL_ROOT/polylinux-theme-catalog.sh"
+    THEME_TITLE=$(theme_field title)
+    THEME_ORG=$(theme_field org)
+    THEME_PLACE=$(theme_field place)
+    THEME_SYSTEM=$(theme_field system)
+    THEME_PROJECT=$(theme_field project)
+    THEME_ASSET=$(theme_field asset)
+    THEME_EVENT=$(theme_field event)
+    THEME_STATUS=$(theme_field status)
+    THEME_SERVICE=$(theme_field service)
+    THEME_HOST=$(theme_field host)
+    THEME_FILE=$(theme_field file)
+    THEME_PERSON=$(theme_field person)
     department_index=$(index_for department 4)
     DEPARTMENT=$(word_at "$department_index" $DEPARTMENTS)
     WRONG_DEPARTMENT=$(word_at "$(((department_index + 1) % 4))" $DEPARTMENTS)
@@ -14,13 +27,17 @@ derive_parameters() {
         sales) people=$SALES_USERS;; support) people=$SUPPORT_USERS;;
     esac
     TARGET_USER=$(word_at "$(index_for employee 6)" $people)
-    PROJECT=$(word_at "$(index_for project 4)" $PROJECTS)-$(derive_hex project-name | cut -c1-6)
-    DOCUMENT=report-$(derive_hex document-name | cut -c1-6).txt
+    PROJECT=$THEME_PROJECT-$(derive_hex project-name | cut -c1-6)
+    DOCUMENT=$THEME_FILE-$(derive_hex document-name | cut -c1-6).txt
     variant=$(index_for blocker 2)
 }
 write_document() {
     relative=${1#"$LEVEL_HOME"/}
-    printf 'PolyLinux fictional company record\nRecord: %s\n' "$(derive_hex "content:$relative")" > "$1"
+    printf '%s operations record\nOrganization: %s\nDepartment: %s\nLocation: %s\nSystem: %s\nProject: %s\nAsset: %s\nEvent: %s\nStatus: %s\nService: %s\nHost: %s\nContact: %s\nReference: %s\n' \
+        "$THEME_TITLE" "$THEME_ORG" "$DEPARTMENT" "$THEME_PLACE" \
+        "$THEME_SYSTEM" "$THEME_PROJECT" "$THEME_ASSET" "$THEME_EVENT" \
+        "$THEME_STATUS" "$THEME_SERVICE" "$THEME_HOST" "$THEME_PERSON" \
+        "$(derive_hex "content:$relative")" > "$1"
 }
 render_box_file() {
     input=$1
@@ -39,7 +56,7 @@ render_box_file() {
         }
         {
             line=$0
-            if (line=="__POLYLINUX_DIVIDER__") { print border; next }
+            if (line ~ /^[[:space:]]*__POLYLINUX_DIVIDER__[[:space:]]*$/) { print border; next }
             boxed(line)
         }
         END { print border }
@@ -50,7 +67,7 @@ write_level_metadata() {
     printf 'PolyLinux: Permissions\n'
     printf 'Participant: %s\n' "$USER_ID"
     printf 'Exercise code: %s\n' "$EXERCISE_CODE"
-    printf 'Theme: Corporate Permissions\n'
+    printf 'Theme: %s\n' "$THEME_TITLE"
     printf '%s\n' '__POLYLINUX_DIVIDER__'
 }
 finish_level() {

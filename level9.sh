@@ -14,6 +14,7 @@ chown root:root "$LEVEL_HOME/work/audit/$DEPARTMENT/$DOCUMENT"
 chmod 666 "$LEVEL_HOME/work/audit/$DEPARTMENT/$DOCUMENT"
 chown root:"$DEPARTMENT" "$LEVEL_HOME/work/audit/$DEPARTMENT/control.txt"
 chmod 440 "$LEVEL_HOME/work/audit/$DEPARTMENT/control.txt"
-levelinstructions="Inside work/: Repair only audit/$DEPARTMENT/$DOCUMENT. Its required owner and group are $TARGET_USER:$DEPARTMENT and its required mode is 640. Do not alter control.txt or the audit directory. Run validate when finished and submit the printed key to the exercise grading form."
+levelinstructions="Target employee: $TARGET_USER.
+Inside work/: Repair only audit/$DEPARTMENT/$DOCUMENT. Its required owner and group are $TARGET_USER:$DEPARTMENT and its required mode is 640. Do not alter control.txt or the audit directory. Run validate when finished and submit the printed key to the exercise grading form."
 
 finish_level

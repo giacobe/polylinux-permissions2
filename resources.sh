@@ -26,16 +26,16 @@ render_box_file() {
     input=$1
     output=$2
     awk '
-        BEGIN { width=36; border="****************************************"; print border }
+        BEGIN { width=70; border="**********************************************************************"; print border }
         function boxed(text, cut, i) {
-            if (text == "") { printf "* %-36s *\n", ""; return }
+            if (text == "") { printf "* %-70s *\n", ""; return }
             while (length(text) > width) {
                 cut=width
                 for (i=width; i>1; i--) if (substr(text,i,1)==" ") { cut=i-1; break }
-                printf "* %-36s *\n", substr(text,1,cut)
+                printf "* %-70s *\n", substr(text,1,cut)
                 text=substr(text,cut+1); sub(/^[[:space:]]+/,"",text)
             }
-            printf "* %-36s *\n", text
+            printf "* %-70s *\n", text
         }
         {
             line=$0
@@ -59,14 +59,6 @@ finish_level() {
         write_level_metadata "$levelToBuild"
         printf '%s\n' "$levelinstructions"
         printf '\n'
-        printf '%s\n' 'Work from your home directory; paths in the task above are relative to work/.'
-        printf '%s\n' 'Use sudo for administrative repairs; sudo is passwordless in this disposable VM.'
-        printf '%s\n' 'Inspect with ls -ld, stat, id and sudo -u USER when appropriate.'
-        printf '%s\n' 'Do not change file contents, names, or unrelated permissions or ownership.'
-        printf '%s\n' 'Run validate after your repair. Submit its 16 lowercase hexadecimal characters'
-        printf '%s\n' 'to the external exercise grading form. The key is case-sensitive, with no spaces.'
-        printf '%s\n' 'validate fingerprints your current work; it never says correct or incorrect.'
-        printf '%s\n' 'nextlevel and prevlevel do not require an answer. Each level is independent.'
     } > "$raw_readme"
     render_box_file "$raw_readme" "$LEVEL_HOME/README.txt"
     rm -f "$raw_readme"

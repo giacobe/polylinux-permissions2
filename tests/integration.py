@@ -5,6 +5,7 @@ Requires an existing Buildroot rootfs only to supply BusyBox + its libraries.
 Ubuntu host binaries supply sudo/coreutils in the test jail, not in a release VM.
 """
 import gzip
+import json
 import hashlib
 import os
 from pathlib import Path
@@ -18,6 +19,22 @@ from types import SimpleNamespace
 
 LAB = Path(__file__).resolve().parents[1]
 WORKSPACE = LAB.parent
+THEME_FIELDS = ('title','org','place','system','project','asset','event',
+                'status','service','host','file','person')
+
+def theme_data(index, source=LAB/'polylinux-theme-catalog.sh'):
+    script = '. "$1"; THEME_INDEX=$2; export THEME_INDEX; for field in ' + \
+        ' '.join(THEME_FIELDS) + '; do printf "%s\\t" "$(theme_field "$field")"; done'
+    result = subprocess.run(['sh','-c',script,'sh',str(source),str(index)],
+                            check=True,capture_output=True,text=True)
+    values = result.stdout.rstrip('\t\n').split('\t')
+    assert len(values) == len(THEME_FIELDS) and all(values)
+    return dict(zip(THEME_FIELDS,values))
+
+def theme_index(email, day):
+    material = b'polylinux-theme-v1\0polylinux-permissions\0' + \
+        email.encode() + b'\0' + day.encode() + b'\0'
+    return hashlib.sha256(material).digest()[0] % 16
 def parse_newc(blob):
     """Minimal read-only newc reader; keep the source test suite self-contained."""
     pos = 0
@@ -42,13 +59,14 @@ def expected(n, email, day, secret='testSecret', password_root='levelPassword'):
     seed = digest(email + day + secret + password_root + str(n))
     h = lambda label: digest(seed + ':' + label)
     ix = lambda label, length: int(h(label)[:2], 16) % length
+    theme = theme_data(theme_index(email,day))
     groups = ['management', 'engineering', 'sales', 'support']
     people = ['ajohnson bdavis csmith dwilson ethomas fmiller', 'gchen hkim ipatel jbrown knguyen lgarcia', 'mscott nlopez owhite ptorres qreed radams', 'sclark tevans uyoung vmartinez wbrooks xhall']
     idx = ix('department', 4)
     group = groups[idx]
     person = people[idx].split()[ix('employee', 6)]
-    project = ['atlas','beacon','compass','delta'][ix('project',4)] + '-' + h('project-name')[:6]
-    document = 'report-' + h('document-name')[:6] + '.txt'
+    project = theme['project'] + '-' + h('project-name')[:6]
+    document = theme['file'] + '-' + h('document-name')[:6] + '.txt'
     nodes = {'.': ['d', 0o755, 'root', 'root', None]}
     def directory(p, mode=0o755, owner='root', grp='root'):
         parent = str(Path(p).parent)
@@ -59,7 +77,13 @@ def expected(n, email, day, secret='testSecret', password_root='levelPassword'):
         parent = str(Path(p).parent)
         if parent not in nodes:
             directory(parent)
-        content = 'PolyLinux fictional company record\nRecord: ' + h('content:work/' + p) + '\n'
+        content = (f"{theme['title']} operations record\nOrganization: {theme['org']}\n" +
+                   f"Department: {group}\nLocation: {theme['place']}\n" +
+                   f"System: {theme['system']}\nProject: {theme['project']}\n" +
+                   f"Asset: {theme['asset']}\nEvent: {theme['event']}\n" +
+                   f"Status: {theme['status']}\nService: {theme['service']}\n" +
+                   f"Host: {theme['host']}\nContact: {theme['person']}\n" +
+                   'Reference: ' + h('content:work/' + p) + '\n')
         nodes[p] = ['f', mode, owner, grp, content.encode()]
     if n == 1: file('records/'+document,0o640,person,group)
     elif n == 2: file('departments/'+group+'/'+document,0o640,person,group)
@@ -102,6 +126,10 @@ def expected(n, email, day, secret='testSecret', password_root='levelPassword'):
 def main():
     if os.geteuid() != 0:
         sys.exit('Run with sudo; all user/account changes are confined to a temporary chroot.')
+    catalog = [theme_data(index) for index in range(16)]
+    shared_catalog = [theme_data(index,WORKSPACE/'tools/polylinux-common.sh') for index in range(16)]
+    assert catalog == shared_catalog
+    assert len({item['title'] for item in catalog}) == 16
     baseline = Path(sys.argv[1]) if len(sys.argv) > 1 else WORKSPACE/'buildroot-baseline/processes-v1/images/processes-v1-rootfs.cpio.gz'
     with tempfile.TemporaryDirectory(prefix='polylinux-permissions-tests-') as tmp:
         jail = Path(tmp)
@@ -170,7 +198,10 @@ def main():
                 raise AssertionError(f'{args}: {result.stdout}\n{result.stderr}\n'+(log.read_text() if log.exists() else 'No build log yet'))
             return result
         def install(email, day, secret='testSecret', workers='10'):
-            return run(['env',f'USER_ID={email}',f'CURRENT_DATE={day}',f'SYSTEM_PASSWORD={secret}',f'MAX_PARALLEL={workers}','sh','/root/install.sh','--non-interactive','--no-login'])
+            result = run(['env',f'USER_ID={email}',f'CURRENT_DATE={day}',f'SYSTEM_PASSWORD={secret}',f'MAX_PARALLEL={workers}','sh','/root/install.sh','--non-interactive','--no-login'])
+            assert 'Preparing all ten levels' in result.stdout
+            assert all(f'Level {n}: ready' in result.stdout for n in range(1,11))
+            return result
         # Preflight must fail before creating accounts or homes.
         visudo = jail/'usr/sbin/visudo'
         if not visudo.exists(): visudo = jail/'usr/bin/visudo'
@@ -184,12 +215,17 @@ def main():
         solver = (LAB/'verify.sh').read_text()
         email='learner@example.edu'; day='2026-10-01'
         initial_by_seed = {}
+        captured_vectors = []
         blockers = set()
         def peer_in_group(person,group):
             gid=next(line.split(':')[2] for line in (jail/'etc/group').read_text().splitlines() if line.startswith(group+':'))
             return next(line.split(':')[0] for line in (jail/'etc/passwd').read_text().splitlines() if line.split(':')[3]==gid and not line.startswith(person+':'))
         def solve_case(email,day,secret='testSecret',workers='10'):
             install(email,day,secret,workers)
+            selected_theme = theme_data(theme_index(email,day))
+            readme = (jail/'home/level1/README.txt').read_text()
+            assert f"Theme: {selected_theme['title']}" in readme
+            assert '__POLYLINUX_DIVIDER__' not in readme, readme
             keys=[]
             for n in range(1,11):
                 initial = run(['validate'],user=f'level{n}').stdout.strip()
@@ -203,8 +239,8 @@ def main():
                     assert len(blocked)==1
                     blockers.add(blocked[0].name=='archive')
                 key = run(['sh','-s','--',str(n)],user=f'level{n}',input=solver).stdout.strip()
-                assert key == answer, (n,key,answer)
-                assert initial != key, (n,'initial state already correct')
+                assert initial != key, (n,'initial state already correct',
+                                        (jail/f'home/level{n}/README.txt').read_text())
                 # Compare every real path, byte, owner/group and mode independently.
                 root = jail/f'home/level{n}/work'
                 actual_paths = {'.'}|{str(p.relative_to(root)) for p in root.rglob('*')}
@@ -215,7 +251,10 @@ def main():
                     info=run(['stat','-c','%U:%G',f'/home/level{n}/work/'+p]).stdout.strip()
                     assert info == owner+':'+grp,(n,p,info)
                     if data is not None: assert artifact.read_bytes()==data,(n,p)
+                assert key == answer, (n,key,answer)
                 keys.append(key)
+            captured_vectors.append({'email':email,'exerciseDate':day,'exerciseCode':format(int(day.replace('-','')),'X'),
+                'secrets':{'Exercise':secret,**{f'Level {n}':f'levelPassword{n}' for n in range(1,11)}},'answers':keys})
             return keys
         first=solve_case(email,day)
         second=solve_case(email,day,workers='1')
@@ -223,7 +262,12 @@ def main():
         assert all(a!=b for a,b in zip(first,solve_case('another@example.edu',day)))
         assert all(a!=b for a,b in zip(first,solve_case(email,'2026-10-02')))
         assert all(a!=b for a,b in zip(first,solve_case(email,day,'changedSecret')))
+        if os.environ.get('PERMISSIONS_VECTOR_OUTPUT'):
+            solve_case('nxg13@psu.edu',day,'systemPassword')
+            solve_case('Learner.Mixed@example.edu',day,'systemPassword')
         solve_case(email,day)
+        if os.environ.get('PERMISSIONS_VECTOR_OUTPUT'):
+            Path(os.environ['PERMISSIONS_VECTOR_OUTPUT']).write_text(json.dumps({'provenance':'Actual reference repairs and validate in isolated Linux chroot; independently checked metadata/content', 'vectors':captured_vectors},indent=2)+'\n')
         assert blockers == {True,False}, 'both seeded blocker locations must be exercised'
         # Navigation is passwordless and does not consult completion or keys.
         for user,helper,target in [('level1','nextlevel','level2'),('level2','prevlevel','level1')]:
@@ -262,9 +306,9 @@ def main():
         (jail/'root/level4.sh').write_text('#!/bin/sh\nexit 7\n')
         failure=run(['env',f'USER_ID={email}',f'CURRENT_DATE={day}','sh','/root/install.sh','--non-interactive','--no-login'],ok=False)
         assert failure.returncode and (jail/'run/polylinux-permissions/level4.failed').exists()
-        assert 'Build failed' in (jail/'home/level4/README.txt').read_text()
+        assert 'This level could not be prepared.' in (jail/'home/level4/README.txt').read_text()
         assert not (jail/'run/polylinux-permissions/lock').exists()
         assert (jail/'home/unrelated/sentinel').read_text()=='keep\n'
-        print('PASS: 60 level repairs; independent state/key oracle; repeatability; learner/date/password variation; serial/parallel guarded reset; dependency/failure handling; both traversal variants; setgid/sticky; navigation/colors; fingerprint sensitivity.')
+        print(f'PASS: {len(captured_vectors)*10} level repairs; shared 16-theme catalog/selection and themed records; independent state/key oracle; repeatability; learner/date/password variation; serial/parallel guarded reset; dependency/failure handling; both traversal variants; setgid/sticky; navigation/colors; fingerprint sensitivity.')
 
 if __name__ == '__main__': main()

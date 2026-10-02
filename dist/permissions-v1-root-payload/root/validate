@@ -1,0 +1,28 @@
+#!/bin/sh
+# permissions-state-v1: no expected state, seed, answer or comparison lives here.
+set -eu
+export LC_ALL=C
+if [ "$(id -u)" -ne 0 ]; then exec sudo -n /usr/bin/validate; fi
+actor=${SUDO_USER:-${USER:-}}
+case "$actor" in level[1-9]|level10) ;; *) echo 'Run validate from a level account.' >&2; exit 1;; esac
+cd "/home/$actor/work"
+scratch=$(mktemp -d /tmp/polylinux-fingerprint.XXXXXX)
+trap 'rm -rf "$scratch"' EXIT HUP INT TERM
+# Materialize each step so traversal/read errors cannot yield a partial key.
+find . -print > "$scratch/paths"
+sort "$scratch/paths" > "$scratch/sorted"
+printf 'permissions-state-v1\n%s\n' "$actor" > "$scratch/state"
+while IFS= read -r path; do
+    if [ -L "$path" ]; then kind=l
+    elif [ -d "$path" ]; then kind=d
+    elif [ -f "$path" ]; then kind=f
+    else echo "Unsupported artifact: $path" >&2; exit 1; fi
+    printf '%s|%s|' "$path" "$kind" >> "$scratch/state"
+    stat -c '%a|%U|%G' "$path" >> "$scratch/state"
+    case "$kind" in
+        f) digest=$(sha256sum "$path"); printf '%s\n' "${digest%% *}" >> "$scratch/state";;
+        l) readlink "$path" >> "$scratch/state";;
+    esac
+done < "$scratch/sorted"
+digest=$(sha256sum "$scratch/state")
+printf '%s' "$digest" | cut -c1-16

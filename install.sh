@@ -48,7 +48,9 @@ for group in $DEPARTMENTS; do
         [ "$(id -gn "$person")" = "$group" ] || die "existing $person has unexpected primary group"
     done
 done
+printf 'Creating Level'
 for n in 1 2 3 4 5 6 7 8 9 10; do
+    printf ' %s' "$n"
     id "level$n" >/dev/null 2>&1 || adduser -D -s /bin/sh "level$n"
     passwd -d "level$n" >/dev/null
 done
@@ -71,9 +73,7 @@ cp "$INSTALL_ROOT/polylinux-colors.sh" /etc/profile.d/polylinux-colors.sh
 chmod 644 /etc/profile.d/polylinux-colors.sh
 for helper in nextlevel prevlevel validate; do cp "$INSTALL_ROOT/$helper" "/usr/bin/$helper"; chmod 755 "/usr/bin/$helper"; done
 . "$INSTALL_ROOT/runtime.sh"
-printf 'Creating Level'
-for n in 1 2 3 4 5 6 7 8 9 10; do printf ' %s' "$n"; done
-printf '\n'
+
 prepare_levels
 # Supervisor owns the lock once launched; stdin/HUP do not kill background builds.
 (trap '' HUP; trap 'rmdir /run/polylinux-permissions/lock 2>/dev/null || :' EXIT; build_levels) </dev/null >> /var/log/polylinux-permissions.log 2>&1 &

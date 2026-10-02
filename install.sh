@@ -16,6 +16,7 @@ LEVEL_PASSWORD_ROOT=${LEVEL_PASSWORD_ROOT:-levelPassword}
 currentDate=${CURRENT_DATE:-$(date +%Y-%m-%d)}
 case "$currentDate" in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) die 'date must be YYYY-MM-DD';; esac
 [ "$(date -d "$currentDate" +%Y-%m-%d)" = "$currentDate" ] || die 'invalid calendar date'
+EXERCISE_CODE=$(printf '%X' "$(printf '%s' "$currentDate" | tr -d '-')")
 if [ "$NON_INTERACTIVE" -eq 1 ]; then
     [ -n "${USER_ID:-}" ] || die 'USER_ID required with --non-interactive'
 else
@@ -30,7 +31,7 @@ fi
 case "$USER_ID" in *[[:space:]]*|'') die 'email cannot contain whitespace';; ?*@?*.?*) ;; *) die 'invalid email';; esac
 MAX_PARALLEL=${MAX_PARALLEL:-10}
 case "$MAX_PARALLEL" in [1-9]|10) ;; *) die 'MAX_PARALLEL must be 1..10';; esac
-export INSTALL_ROOT USER_ID currentDate SYSTEM_PASSWORD LEVEL_PASSWORD_ROOT
+export INSTALL_ROOT USER_ID currentDate EXERCISE_CODE SYSTEM_PASSWORD LEVEL_PASSWORD_ROOT
 umask 022
 # An atomic lock prevents simultaneous reset/build workers from mixing sessions.
 mkdir -p /run/polylinux-permissions /etc/profile.d /etc/sudoers.d /home
@@ -70,6 +71,9 @@ cp "$INSTALL_ROOT/polylinux-colors.sh" /etc/profile.d/polylinux-colors.sh
 chmod 644 /etc/profile.d/polylinux-colors.sh
 for helper in nextlevel prevlevel validate; do cp "$INSTALL_ROOT/$helper" "/usr/bin/$helper"; chmod 755 "/usr/bin/$helper"; done
 . "$INSTALL_ROOT/runtime.sh"
+printf 'Creating Level'
+for n in 1 2 3 4 5 6 7 8 9 10; do printf ' %s' "$n"; done
+printf '\n'
 prepare_levels
 # Supervisor owns the lock once launched; stdin/HUP do not kill background builds.
 (trap '' HUP; trap 'rmdir /run/polylinux-permissions/lock 2>/dev/null || :' EXIT; build_levels) </dev/null >> /var/log/polylinux-permissions.log 2>&1 &

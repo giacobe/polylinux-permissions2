@@ -2,6 +2,23 @@
 safe_remove_home() {
     case "$1" in /home/level[1-9]|/home/level10|/home/.permissions-level[1-9]|/home/.permissions-level10) rm -rf "$1";; *) die "unsafe reset: $1";; esac
 }
+write_level_status_readme() {
+    status=$1
+    home=$2
+    level=$3
+    raw="$home/.README.raw.$$"
+    {
+        write_level_metadata "$level"
+        printf '%s\n' "$status"
+        if [ "$status" = 'This level has not completed building yet.' ]; then
+            printf '\n%s\n' 'You may continue to another level or return here shortly.'
+        else
+            printf '\n%s\n' 'Restart this lab to try again. If the problem continues, report it to your instructor.'
+        fi
+    } > "$raw"
+    render_box_file "$raw" "$home/README.txt"
+    rm -f "$raw"
+}
 prepare_levels() {
     rm -f /run/polylinux-permissions/*.ready /run/polylinux-permissions/*.failed /run/polylinux-permissions/all-ready
     : > /var/log/polylinux-permissions.log
@@ -10,7 +27,7 @@ prepare_levels() {
         safe_remove_home "$home"
         mkdir "$home"
         cp "$INSTALL_ROOT/profile" "$home/.profile"
-        printf 'Level is preparing. Return shortly; navigation is available.\n' > "$home/README.txt"
+        write_level_status_readme 'This level has not completed building yet.' "$home" "level$n"
         chown "level$n:level$n" "$home"
         chmod 755 "$home"
     done
@@ -24,7 +41,7 @@ build_one() (
     failed() {
         result=$?
         if [ "$result" -ne 0 ]; then
-            printf 'Build failed. See /var/log/polylinux-permissions.log as root.\n' > "/home/$levelToBuild/README.txt"
+            write_level_status_readme 'This level could not be prepared.' "/home/$levelToBuild" "$levelToBuild"
             touch "/run/polylinux-permissions/$levelToBuild.failed"
         fi
     }

@@ -8,8 +8,10 @@ packaging. This directory is a standalone lab source tree.
 ## Installation
 
 Place the runtime payload in `/root` of a compatible disposable Buildroot VM.
-Root's `.profile` starts the installer. Interactive installation asks for the
-learner's email and captures the ISO date once. For automated installation:
+Root's `.profile` starts the installer. It derives the exercise code once from
+the Buildroot VM's current ISO date and uses that same code in each level's
+boxed README. During setup it prints the ten levels being created. Interactive
+installation asks for the learner's email. For automated installation:
 
 ```sh
 USER_ID=learner@example.edu CURRENT_DATE=2026-10-01 \
@@ -25,7 +27,7 @@ an interrupted runtime lock. Employee accounts are reused after group verificati
 
 ## Determinism
 
-For level N:
+For level N, the answer seed uses the ISO date represented by the exercise code:
 
 ```text
 SHA256(email + YYYY-MM-DD + SYSTEM_PASSWORD + LEVEL_PASSWORD_ROOT + N)
@@ -33,8 +35,10 @@ SHA256(email + YYYY-MM-DD + SYSTEM_PASSWORD + LEVEL_PASSWORD_ROOT + N)
 
 Exact UTF-8 bytes, no separators and no trailing newline. Defaults are
 `systemPassword` and `levelPassword`; override both through environment variables.
-Email spelling and case are preserved, not silently normalized. Invalid dates or
-whitespace in the email are rejected. Labeled SHA-256 subhashes choose department,
+Learner READMEs display the exercise code without a separate date. Their
+instructions wrap inside a 40-column star box. Email spelling and case are
+preserved, not silently normalized. Invalid dates or whitespace in the email are
+rejected. Labeled SHA-256 subhashes choose department,
 employee, names, blocker location, and record contents independently.
 
 This deliberately replaces the starting repository's NUL-delimited seed scheme.

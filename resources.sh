@@ -22,22 +22,52 @@ write_document() {
     relative=${1#"$LEVEL_HOME"/}
     printf 'PolyLinux fictional company record\nRecord: %s\n' "$(derive_hex "content:$relative")" > "$1"
 }
+render_box_file() {
+    input=$1
+    output=$2
+    awk '
+        BEGIN { width=36; border="****************************************"; print border }
+        function boxed(text, cut, i) {
+            if (text == "") { printf "* %-36s *\n", ""; return }
+            while (length(text) > width) {
+                cut=width
+                for (i=width; i>1; i--) if (substr(text,i,1)==" ") { cut=i-1; break }
+                printf "* %-36s *\n", substr(text,1,cut)
+                text=substr(text,cut+1); sub(/^[[:space:]]+/,"",text)
+            }
+            printf "* %-36s *\n", text
+        }
+        {
+            line=$0
+            if (line=="__POLYLINUX_DIVIDER__") { print border; next }
+            boxed(line)
+        }
+        END { print border }
+    ' "$input" > "$output"
+}
+write_level_metadata() {
+    printf 'Level: %s\n' "$1"
+    printf 'PolyLinux: Permissions\n'
+    printf 'Participant: %s\n' "$USER_ID"
+    printf 'Exercise code: %s\n' "$EXERCISE_CODE"
+    printf 'Theme: Corporate Permissions\n'
+    printf '%s\n' '__POLYLINUX_DIVIDER__'
+}
 finish_level() {
-    cat > "$LEVEL_HOME/README.txt" <<EOF
-PolyLinux Permissions — Level $levelnumber
-Participant: $USER_ID
-Date: $currentDate
-Exercise code: $(printf '%X' "$(printf '%s' "$currentDate" | tr -d '-')")
-
-$levelinstructions
-
-Work from your home directory; paths in the task above are relative to work/.
-Use sudo for administrative repairs; sudo is passwordless in this disposable VM.
-Inspect with ls -ld, stat, id and sudo -u USER when appropriate.
-Do not change file contents, names, or unrelated permissions or ownership.
-Run validate after your repair. Submit its 16 lowercase hexadecimal characters
-to the external exercise grading form. The key is case-sensitive, with no spaces.
-validate fingerprints your current work; it never says correct or incorrect.
-nextlevel and prevlevel do not require an answer. Each level is independent.
-EOF
+    raw_readme="$LEVEL_HOME/.README.raw.$levelnumber"
+    {
+        write_level_metadata "$levelToBuild"
+        printf '%s\n' "$levelinstructions"
+        printf '\n'
+        printf '%s\n' 'Work from your home directory; paths in the task above are relative to work/.'
+        printf '%s\n' 'Use sudo for administrative repairs; sudo is passwordless in this disposable VM.'
+        printf '%s\n' 'Inspect with ls -ld, stat, id and sudo -u USER when appropriate.'
+        printf '%s\n' 'Do not change file contents, names, or unrelated permissions or ownership.'
+        printf '%s\n' 'Run validate after your repair. Submit its 16 lowercase hexadecimal characters'
+        printf '%s\n' 'to the external exercise grading form. The key is case-sensitive, with no spaces.'
+        printf '%s\n' 'validate fingerprints your current work; it never says correct or incorrect.'
+        printf '%s\n' 'nextlevel and prevlevel do not require an answer. Each level is independent.'
+    } > "$raw_readme"
+    render_box_file "$raw_readme" "$LEVEL_HOME/README.txt"
+    rm -f "$raw_readme"
 }

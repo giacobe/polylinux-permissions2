@@ -27,6 +27,7 @@ finish_level() {
 PolyLinux Permissions — Level $levelnumber
 Participant: $USER_ID
 Date: $currentDate
+Exercise code: $(printf '%X' "$(printf '%s' "$currentDate" | tr -d '-')")
 
 $levelinstructions
 

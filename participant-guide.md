@@ -54,6 +54,11 @@ spaces or quotes. A key is produced for an unfinished or incorrect repair too;
 the command records your current work and does not evaluate it. Run it again if
 you make further changes. It is not a password for the next level.
 
+The Form also asks for the **Exercise code** printed in your README. Copy it as
+text; it represents the date used to build this session. Enter your email with
+the same capitalization used during installation. Do not substitute today's
+date if you are submitting an earlier session.
+
 ```sh
 nextlevel
 prevlevel

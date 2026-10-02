@@ -58,7 +58,6 @@ finish_level() {
     {
         write_level_metadata "$levelToBuild"
         printf '%s\n' "$levelinstructions"
-        printf '\n'
     } > "$raw_readme"
     render_box_file "$raw_readme" "$LEVEL_HOME/README.txt"
     rm -f "$raw_readme"
